@@ -50,15 +50,20 @@ try:
         print("error reading file")
 except BaseException as exc:
     print(f"Got exception {exc} when reading json file")
-# variant: update and test existance of mandatory keys
+# variant: update and test existance of mandatory keys (will fail)
 r = update_dict_from_json_file(some_dict, 
                                "tests/sample_data.json", 
                                mandatory_keys=["abc", "test.x.y"], 
                                print_errors_to=sys.stderr)
 if r:
-    print(json.dumps(some_dict, indent=4))
-else:
-    print("error reading file")
+    print("update_dict_from_json_file : found all mandatory keys")
+# but: update and test existance of mandatory keys (will succeed)
+r = update_dict_from_json_file(some_dict, 
+                               "tests/sample_data.json", 
+                               mandatory_keys=["SecondLine", "SecondLine.Part2"], 
+                               print_errors_to=sys.stderr)
+if r:
+    print("update_dict_from_json_file : found all mandatory keys")
 
 ###########################################################
 # SAMPLE USAGE: dict_contains_path
@@ -66,8 +71,8 @@ else:
 
 # Some tests for the existence of some paths within a dict.
 # For these tests, use some_dict, which has been updated above.
-print(f"FirstLinePart2: {dict_contains_path(some_dict, 'FirstLinePart2')}") # True
-print(f"FirstLinePart5: {dict_contains_path(some_dict, 'FirstLinePart5')}") # False
-print(f"SecondLine.Part1: {dict_contains_path(some_dict, 'SecondLine.Part1')}") # True
-print(f"SecondLine.Part1.Word2: {dict_contains_path(some_dict, 'SecondLine.Part1.Word2')}") # False
+print(f"FirstLinePart2 exists: {dict_contains_path(some_dict, 'FirstLinePart2')}") # True
+print(f"FirstLinePart5 exists: {dict_contains_path(some_dict, 'FirstLinePart5')}") # False
+print(f"SecondLine.Part1 exists: {dict_contains_path(some_dict, 'SecondLine.Part1')}") # True
+print(f"SecondLine.Part1.Word2 exists: {dict_contains_path(some_dict, 'SecondLine.Part1.Word2')}") # False
 
