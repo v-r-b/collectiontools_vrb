@@ -1,0 +1,10 @@
+{
+    "key": "val: \\{{key_in_str}\\} \"\\/text_after_backslash\" /text_after_slash",
+    "dict": { "val2": "some_text{key_in_dict}"},
+    "list": [ "some_text_again{key_in_list}\\/", 123, "some_other_text", 
+              { "test": "{key_in_dict_inside_list} "}, 
+              ["\\{some_text_within_curly_brackets\\}{key_in_sublist}"]],
+    "int": 22,
+    "bool": true,
+    "none": null
+}
