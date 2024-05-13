@@ -28,6 +28,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/v-r-b/collectiontools_vrb"
+Issues = "https://github.com/v-r-b/collectiontools_vrb/issues"
 
 [tool.hatch.version]
 path = "./src/collectiontools_vrb/__version__.py"

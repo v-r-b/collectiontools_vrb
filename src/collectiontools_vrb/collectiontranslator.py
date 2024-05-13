@@ -1,6 +1,8 @@
 import re
 from typing import Any as Any
 
+# [ ] Check implementation of translate_str()
+
 class CollectionTranslator:
     """ Search strings, lists or dicts for placeholders using 
     a regular expression provided by the user. Replace the 
