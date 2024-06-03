@@ -101,7 +101,7 @@ class CollectionTranslator:
             # find and replace placeholders:
             mo = re.findall(self.regexp, s)
             for m in mo:
-                val = self.translator_func(m[1:-1])
+                val = str(self.translator_func(m[1:-1]))
                 s = re.sub(m, val, s, 1)
         # replace \\{, \\}, \\/ by {, }, \
         s = re.sub(r"\\{", "{", s)
