@@ -36,19 +36,22 @@ as well provided by the user.
 
 from __future__ import annotations
     
-import asyncio
 from types import FrameType
-import aiohttp
-import json
-import traceback
-import sys, inspect
 from typing import Any as Any
+from logging import Logger
+import aiohttp, asyncio, json, traceback, inspect
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from _typeshed import SupportsWrite
 
 from collectiontools_vrb.collectiontranslator import *
+
+def _print_error(msg: str, target: SupportsWrite[str]|Logger):
+    if isinstance(target, Logger):
+        target.error(msg)
+    else:
+        print(msg, file=target)
 
 async def _update_dict_from_url(d: dict, url: str, sep: str, strip: bool) -> aiohttp.ClientResponse:
     """Internal method using asyncio to carry out
@@ -74,7 +77,7 @@ async def _update_dict_from_url(d: dict, url: str, sep: str, strip: bool) -> aio
 def update_dict_from_url(d: dict, url: str, *,
             sep: str = "=", strip: bool = True,
             reraise_exc: bool = False, 
-            print_errors_to: SupportsWrite[str]|None = None) -> bool:
+            print_errors_to: SupportsWrite[str]|Logger|None = None) -> bool:
     """Read collection data from the given URL. 
 
     The data must consist of lines of key-value-pairs
@@ -88,9 +91,10 @@ def update_dict_from_url(d: dict, url: str, *,
         strip (bool, optional): Strip trailing and leading whitespace from keys and values? Defaults to True.
         reraise_exc (bool, optional): reraise caught exceptions if True, otherwise
             print exception info if print_errors == True. Defaults to False.
-        print_errors_to (SupportsWrite[str], optional): stream to print error information to, 
-            i.e. missing mandatory keys, error on opening file etc. Defaults to None.
-            If not None, print_errors_to will be passed to the print function as "file=" argument.
+        print_errors_to (SupportsWrite[str]|Logger, optional): stream or logger to print error information to, 
+            i.e. error on opening file etc. Defaults to None.
+            If of type SupportsWrite[str], print_errors_to will be passed to the print function as "file=" argument.
+            If of type Logger, print_errors_to.error() will be called.
 
     Raises:
         Exception: if URL can not be read properly (only if reraise_exc == True)
@@ -106,14 +110,14 @@ def update_dict_from_url(d: dict, url: str, *,
             raise
         # else print error if requested to do so
         elif print_errors_to:
-            print(traceback.format_exc(), file=print_errors_to)
+            _print_error(traceback.format_exc(), target=print_errors_to)
         return False
     return response.ok
 
 def update_dict_from_key_value_file(d: dict, path: str, *,
             sep: str = "=", strip: bool = True,
             reraise_exc: bool = False, 
-            print_errors_to: SupportsWrite[str]|None = None) -> bool:
+            print_errors_to: SupportsWrite[str]|Logger|None = None) -> bool:
     """Read collection data from the given file. 
 
     The data must consist of lines of key-value-pairs
@@ -130,9 +134,10 @@ def update_dict_from_key_value_file(d: dict, path: str, *,
         strip (bool, optional): Strip trailing and leading whitespace from keys and values? Defaults to True.
         reraise_exc (bool, optional): reraise caught exceptions if True, otherwise
             print exception info if print_errors == True. Defaults to False.
-        print_errors_to (SupportsWrite[str], optional): stream to print error information to, 
-            i.e. missing mandatory keys, error on opening file etc. Defaults to None.
-            If not None, print_errors_to will be passed to the print function as "file=" argument.
+        print_errors_to (SupportsWrite[str]|Logger, optional): stream or logger to print error information to, 
+            i.e. error on opening file etc. Defaults to None.
+            If of type SupportsWrite[str], print_errors_to will be passed to the print function as "file=" argument.
+            If of type Logger, print_errors_to.error() will be called.
 
     Returns:
         bool: True on success, False otherwise
@@ -157,7 +162,7 @@ def update_dict_from_key_value_file(d: dict, path: str, *,
             raise
         # else print error if requested to do so
         elif print_errors_to:
-            print(traceback.format_exc(), file=print_errors_to)
+            _print_error(traceback.format_exc(), target=print_errors_to)
         return False
 
 def dict_contains_path(nested_dict: dict, keypath: str, *, sep: str = ".") -> bool:
@@ -194,7 +199,7 @@ def dict_contains_path(nested_dict: dict, keypath: str, *, sep: str = ".") -> bo
 def update_dict_from_json_file(d: dict, file: str, *,
                                mandatory_keys: list[str] = [], 
                                reraise_exc: bool = False,
-                               print_errors_to: SupportsWrite[str]|None = None) -> bool:
+                               print_errors_to: SupportsWrite[str]|Logger|None = None) -> bool:
     """ Read collection data from config file. Check for mandatory keys.
     Reraise an exception (e.g. FileNotFound) only if reraise_exc == True, 
     otherwise print exception information only if print_errors_to is not None.
@@ -206,9 +211,10 @@ def update_dict_from_json_file(d: dict, file: str, *,
             If not found, return false and don't update dict. Defaults to [].
         reraise_exc (bool, optional): reraise caught exceptions if True, otherwise
             print exception info if print_errors == True. Defaults to False.
-        print_errors_to (SupportsWrite[str], optional): stream to print error information to, 
+        print_errors_to (SupportsWrite[str]|Logger, optional): stream or logger to print error information to, 
             i.e. missing mandatory keys, error on opening file etc. Defaults to None.
-            If not None, print_errors_to will be passed to the print function as "file=" argument.
+            If of type SupportsWrite[str], print_errors_to will be passed to the print function as "file=" argument.
+            If of type Logger, print_errors_to.error() will be called.
 
     Returns:
         bool: True on success, False otherwise
@@ -226,9 +232,9 @@ def update_dict_from_json_file(d: dict, file: str, *,
                 if print_errors_to:
                     cf = inspect.currentframe()
                     if isinstance(cf, FrameType):
-                        print(cf.f_code.co_name,
-                              f": missing key '{key}' in file '{file}'", 
-                              file=print_errors_to)
+                        _print_error(f"{cf.f_code.co_name}: "
+                              f"missing key '{key}' in file '{file}'", 
+                              target=print_errors_to)
                 return False
 
         # update d only in case all mandatory keys could be found
@@ -240,5 +246,5 @@ def update_dict_from_json_file(d: dict, file: str, *,
             raise
         # else print error if requested to do so
         elif print_errors_to:
-            print(traceback.format_exc(), file=print_errors_to)
+            _print_error(traceback.format_exc(), target=print_errors_to)
         return False
