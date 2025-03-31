@@ -39,7 +39,7 @@ from __future__ import annotations
 from types import FrameType
 from typing import Any as Any
 from logging import Logger
-import aiohttp, asyncio, json, traceback, inspect
+import aiohttp, asyncio, json, traceback, inspect, ssl
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -53,12 +53,13 @@ def _print_error(msg: str, target: SupportsWrite[str]|Logger):
     else:
         print(msg, file=target)
 
-async def _update_dict_from_url(d: dict, url: str, sep: str, strip: bool) -> aiohttp.ClientResponse:
+async def _update_dict_from_url(d: dict, url: str, sep: str, strip: bool,
+                                ssl: bool|aiohttp.Fingerprint|ssl.SSLContext) -> aiohttp.ClientResponse:
     """Internal method using asyncio to carry out
     the task of updateFromURL.
     See: updateDictFromURL(d, url, sep)
     """
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl = ssl)) as session:
         async with session.get(url) as response:
             if response.ok:
                 text: str = await response.text()
@@ -77,7 +78,8 @@ async def _update_dict_from_url(d: dict, url: str, sep: str, strip: bool) -> aio
 def update_dict_from_url(d: dict, url: str, *,
             sep: str = "=", strip: bool = True,
             reraise_exc: bool = False, 
-            print_errors_to: SupportsWrite[str]|Logger|None = None) -> bool:
+            print_errors_to: SupportsWrite[str]|Logger|None = None,
+            ssl: bool|aiohttp.Fingerprint|ssl.SSLContext = True) -> bool:
     """Read collection data from the given URL. 
 
     The data must consist of lines of key-value-pairs
@@ -95,6 +97,10 @@ def update_dict_from_url(d: dict, url: str, *,
             i.e. error on opening file etc. Defaults to None.
             If of type SupportsWrite[str], print_errors_to will be passed to the print function as "file=" argument.
             If of type Logger, print_errors_to.error() will be called.
+        ssl (bool|aiohttp.Fingerprint|ssl.SSLContext, optional): SSL validation mode. True for default SSL check
+            (ssl.create_default_context() is used), False for skip SSL certificate validation, 
+            aiohttp.Fingerprint for fingerprint validation, ssl.SSLContext for custom SSL certificate validation.
+            See aiohttp.TCPConnector. Defaults to True.
 
     Raises:
         Exception: if URL can not be read properly (only if reraise_exc == True)
@@ -103,7 +109,7 @@ def update_dict_from_url(d: dict, url: str, *,
         True, if HTTP status code of get(url) operation is less than 400, False otherwise
     """
     try:
-        response = asyncio.run(_update_dict_from_url(d, url, sep, strip))
+        response = asyncio.run(_update_dict_from_url(d=d, url=url, sep=sep, strip=strip, ssl=ssl))
     except Exception as exc:
         # reraise exception if raiseExc == True
         if reraise_exc:
